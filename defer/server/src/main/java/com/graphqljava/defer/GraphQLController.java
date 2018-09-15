@@ -159,7 +159,6 @@ public class GraphQLController {
 
     }
 
-
     private class DeferPart {
 
         private Object body;
@@ -172,8 +171,8 @@ public class GraphQLController {
             StringBuilder result = new StringBuilder();
             String bodyString = bodyToString();
             result.append("Content-Type: application/json").append(CRLF);
-            result.append("Content-Length: ").append(bodyString.length() + 2).append(CRLF).append(CRLF);
-            result.append(bodyString).append(CRLF);
+            result.append("Content-Length: ").append(bodyString.length()).append(CRLF).append(CRLF);
+            result.append(bodyString);
             return result.toString();
         }
 
