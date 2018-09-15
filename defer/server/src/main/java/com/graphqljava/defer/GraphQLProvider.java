@@ -27,24 +27,35 @@ public class GraphQLProvider {
     GraphQL graphQL;
 
     List<Map> books = ImmutableList.of(
-            ImmutableMap.of("title", "Harry Potter and the Chamber of Secrets", "author", "J.K. Rowling")
+            ImmutableMap.of("title", "Harry Potter and the Chamber of Secrets", "author", "J.K. Rowling"),
+            ImmutableMap.of("title", "The Lord of the rings", "author", "J. R. R. Tolkien")
     );
 
-    List<Map> comments = ImmutableList.of(
+    List<Map> commentsHarryPotter = ImmutableList.of(
             ImmutableMap.of("user", "andi", "text", "great"),
             ImmutableMap.of("user", "brad", "text", "read better ones"),
             ImmutableMap.of("user", "felipe", "text", "scary")
     );
+    List<Map> commentsRings = ImmutableList.of(
+            ImmutableMap.of("user", "andi", "text", "too long"),
+            ImmutableMap.of("user", "anonymous", "text", "it is a book?")
+    );
 
     DataFetcher<Object> booksFetcher = environment -> books;
     DataFetcher<Object> commentsFetcher = environment -> CompletableFuture.supplyAsync(() -> {
-        sleep();
-        return comments;
+        Map<String, String> source = environment.getSource();
+        if (source.get("title").contains("Potter")) {
+            sleep(1000);
+            return commentsHarryPotter;
+        } else {
+            sleep(3000);
+            return commentsRings;
+        }
     });
 
-    private void sleep() {
+    private void sleep(int time) {
         try {
-            Thread.sleep(2000);
+            Thread.sleep(time);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
