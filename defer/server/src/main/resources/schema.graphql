@@ -1,0 +1,15 @@
+type Query {
+    foo: Foo
+}
+
+type Foo {
+    id: ID
+    complexValue: ComplexValue
+}
+
+type ComplexValue {
+    id: ID
+    hello: String
+}
+
+
