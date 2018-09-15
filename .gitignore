@@ -7,3 +7,4 @@ classes
 *.iml
 *.ipr
 *.iws
+.DS_Store
