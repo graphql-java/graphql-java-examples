@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -23,7 +24,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -43,6 +43,7 @@ public class GraphQLController {
 
     @RequestMapping(value = "/graphql", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
+    @CrossOrigin
     public void graphql(@RequestBody Map<String, Object> body, HttpServletResponse httpServletResponse) throws IOException {
         String query = (String) body.get("query");
         if (query == null) {
@@ -72,6 +73,7 @@ public class GraphQLController {
         httpServletResponse.setStatus(HttpServletResponse.SC_OK);
         httpServletResponse.setCharacterEncoding("UTF-8");
         httpServletResponse.setContentType("application/json");
+        httpServletResponse.setHeader("Access-Control-Allow-Origin", "*");
         String body = objectMapper.writeValueAsString(result);
         PrintWriter writer = httpServletResponse.getWriter();
         writer.write(body);
@@ -83,13 +85,16 @@ public class GraphQLController {
         httpServletResponse.setStatus(HttpServletResponse.SC_OK);
         httpServletResponse.setCharacterEncoding("UTF-8");
         httpServletResponse.setContentType("multipart/mixed; boundary=\"-\"");
+        httpServletResponse.setHeader("Access-Control-Allow-Origin", "*");
         httpServletResponse.setHeader("Transfer-Encoding", "chunked");
+        httpServletResponse.setHeader("Connection", "keep-alive");
         PrintWriter writer = httpServletResponse.getWriter();
 
-        writer.write("---" + CRLF);
+        writer.append(CRLF).append("---").append(CRLF);
         DeferPart deferPart = new DeferPart(executionResult.toSpecification());
         String body = deferPart.write();
         writer.write(body);
+        writer.append(CRLF).append("---").append(CRLF);
         httpServletResponse.flushBuffer();
 
         deferredResults.subscribe(new Subscriber<DeferredExecutionResult>() {
@@ -104,15 +109,16 @@ public class GraphQLController {
 
             @Override
             public void onNext(DeferredExecutionResult executionResult) {
-                DeferPart deferPart = new DeferPart(executionResult.toSpecification());
-                String body = deferPart.write();
-                writer.write(body);
                 try {
+                    DeferPart deferPart = new DeferPart(executionResult.toSpecification());
+                    String body = deferPart.write();
+                    writer.write(body);
+                    writer.append(CRLF).append("-----").append(CRLF);
                     httpServletResponse.flushBuffer();
-                } catch (IOException e) {
+                    subscription.request(10);
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
-                subscription.request(10);
             }
 
             @Override
@@ -142,9 +148,8 @@ public class GraphQLController {
             StringBuilder result = new StringBuilder();
             String bodyString = bodyToString();
             result.append("Content-Type: application/json").append(CRLF);
-            result.append("Content-Length: ").append(bodyString.length()).append(CRLF);
+            result.append("Content-Length: ").append(bodyString.length() + 2).append(CRLF).append(CRLF);
             result.append(bodyString).append(CRLF);
-            result.append(CRLF).append("---").append(CRLF);
             return result.toString();
         }
 
