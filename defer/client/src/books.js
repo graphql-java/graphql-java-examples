@@ -2,24 +2,27 @@ import React from 'react';
 import { Query } from 'react-apollo';
 import gql from 'graphql-tag';
 
-const Comments = comments => (
-  <ul>
-    {comments &&
-      comments.comments &&
-      comments.comments.map(({ user, text }) => (
-        <li key={text}>
-          {user}: {text}
-        </li>
-      ))}
-  </ul>
-);
+const Comments = ({ comments }) => {
+  return (
+    <ul>
+      {comments &&
+        comments.map(({ user, text }) => (
+          <li key={text}>
+            {user}: {text}
+          </li>
+        ))}
+    </ul>
+  );
+};
 
-const Book = ({ title, author, comments }) => (
-  <div>
-    <p>{`${title} by ${author}`}</p>
-    <Comments comments={comments} />
-  </div>
-);
+const Book = ({ title, author, comments }) => {
+  return (
+    <div>
+      <p>{`${title} by ${author}`}</p>
+      <Comments comments={comments} />
+    </div>
+  );
+};
 
 const Books = () => (
   <Query
