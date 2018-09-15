@@ -44,7 +44,7 @@ public class GraphQLProvider {
 
     private void sleep() {
         try {
-            Thread.sleep(50);
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

@@ -2,6 +2,7 @@ package com.graphqljava.defer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 import graphql.DeferredExecutionResult;
 import graphql.ExecutionInput;
 import graphql.ExecutionResult;
@@ -17,9 +18,10 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.AsyncContext;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -31,6 +33,7 @@ public class GraphQLController {
 
 
     public static final String CRLF = "\r\n";
+
     @Autowired
     GraphQL graphql;
 
@@ -40,11 +43,16 @@ public class GraphQLController {
 
     Logger log = LoggerFactory.getLogger(GraphQLController.class);
 
+    @RequestMapping(value = "/test", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @CrossOrigin
+    public void graphql(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) throws IOException {
+        ImmutableMap<String, Object> body = ImmutableMap.of("query", "{books{title author comments @defer {user text}}}");
+        graphql(body, httpServletRequest, httpServletResponse);
+    }
 
     @RequestMapping(value = "/graphql", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseBody
     @CrossOrigin
-    public void graphql(@RequestBody Map<String, Object> body, HttpServletResponse httpServletResponse) throws IOException {
+    public void graphql(@RequestBody Map<String, Object> body, HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) throws IOException {
         String query = (String) body.get("query");
         if (query == null) {
             query = "";
@@ -61,14 +69,29 @@ public class GraphQLController {
         ExecutionResult executionResult = graphql.execute(executionInput);
         Map<Object, Object> extensions = executionResult.getExtensions();
         if (extensions != null && extensions.containsKey(GraphQL.DEFERRED_RESULTS)) {
-            Publisher<DeferredExecutionResult> deferredResults = (Publisher<DeferredExecutionResult>) extensions.get(GraphQL.DEFERRED_RESULTS);
-            sendDeferResponse(httpServletResponse, executionResult, deferredResults);
+            handleDeferResponse(httpServletRequest, httpServletResponse, executionResult, extensions);
         } else {
-            sendNormalResponse(httpServletResponse, executionResult);
+            handleNormalResponse(httpServletResponse, executionResult);
         }
     }
 
-    private void sendNormalResponse(HttpServletResponse httpServletResponse, ExecutionResult executionResult) throws IOException {
+    private void handleDeferResponse(HttpServletRequest httpServletRequest,
+                                     HttpServletResponse httpServletResponse,
+                                     ExecutionResult executionResult,
+                                     Map<Object, Object> extensions) {
+        AsyncContext asyncContext = httpServletRequest.startAsync();
+        asyncContext.start(() -> {
+            Publisher<DeferredExecutionResult> deferredResults = (Publisher<DeferredExecutionResult>) extensions.get(GraphQL.DEFERRED_RESULTS);
+            try {
+                sendDeferResponse(asyncContext, httpServletRequest, httpServletResponse, executionResult, deferredResults);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+    }
+
+    private void handleNormalResponse(HttpServletResponse httpServletResponse, ExecutionResult executionResult) throws IOException {
         Map<String, Object> result = executionResult.toSpecification();
         httpServletResponse.setStatus(HttpServletResponse.SC_OK);
         httpServletResponse.setCharacterEncoding("UTF-8");
@@ -81,7 +104,7 @@ public class GraphQLController {
 
     }
 
-    private void sendDeferResponse(HttpServletResponse httpServletResponse, ExecutionResult executionResult, Publisher<DeferredExecutionResult> deferredResults) throws IOException {
+    private void sendDeferResponse(AsyncContext asyncContext, HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, ExecutionResult executionResult, Publisher<DeferredExecutionResult> deferredResults) throws IOException {
         httpServletResponse.setStatus(HttpServletResponse.SC_OK);
         httpServletResponse.setCharacterEncoding("UTF-8");
         httpServletResponse.setContentType("multipart/mixed; boundary=\"-\"");
@@ -90,11 +113,10 @@ public class GraphQLController {
         httpServletResponse.setHeader("Connection", "keep-alive");
         PrintWriter writer = httpServletResponse.getWriter();
 
-        writer.append(CRLF).append("---").append(CRLF);
         DeferPart deferPart = new DeferPart(executionResult.toSpecification());
+        writer.append(CRLF).append("---").append(CRLF);
         String body = deferPart.write();
         writer.write(body);
-        writer.append(CRLF).append("---").append(CRLF);
         httpServletResponse.flushBuffer();
 
         deferredResults.subscribe(new Subscriber<DeferredExecutionResult>() {
@@ -112,8 +134,8 @@ public class GraphQLController {
                 try {
                     DeferPart deferPart = new DeferPart(executionResult.toSpecification());
                     String body = deferPart.write();
+                    writer.append(CRLF).append("---").append(CRLF);
                     writer.write(body);
-                    writer.append(CRLF).append("-----").append(CRLF);
                     httpServletResponse.flushBuffer();
                     subscription.request(10);
                 } catch (Exception e) {
@@ -128,7 +150,9 @@ public class GraphQLController {
 
             @Override
             public void onComplete() {
+                writer.append(CRLF).append("-----").append(CRLF);
                 writer.close();
+                asyncContext.complete();
             }
         });
 
