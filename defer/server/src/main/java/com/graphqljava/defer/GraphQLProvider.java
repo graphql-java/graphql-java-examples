@@ -48,7 +48,7 @@ public class GraphQLProvider {
             sleep(2000);
             return commentsHarryPotter;
         } else {
-            sleep(3500);
+            sleep(3000);
             return commentsRings;
         }
     });
