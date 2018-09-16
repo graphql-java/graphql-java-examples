@@ -45,10 +45,10 @@ public class GraphQLProvider {
     DataFetcher<Object> commentsFetcher = environment -> CompletableFuture.supplyAsync(() -> {
         Map<String, String> source = environment.getSource();
         if (source.get("title").contains("Potter")) {
-            sleep(1000);
+            sleep(2000);
             return commentsHarryPotter;
         } else {
-            sleep(3000);
+            sleep(3500);
             return commentsRings;
         }
     });
