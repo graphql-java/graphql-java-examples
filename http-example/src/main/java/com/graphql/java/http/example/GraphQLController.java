@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
@@ -38,24 +39,24 @@ public class GraphQLController {
 
     @RequestMapping(value = "/graphql", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @CrossOrigin
-    public void graphqlGET(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) throws IOException {
-        String query = httpServletRequest.getParameter("query");
+    public void graphqlGET(@RequestParam("query") String query,
+                           @RequestParam(value = "operationName", required = false) String operationName,
+                           @RequestParam("variables") String variablesJson,
+                           HttpServletResponse httpServletResponse) throws IOException {
         if (query == null) {
             query = "";
         }
-        String variablesJson = httpServletRequest.getParameter("variables");
-        Map<String, Object> variables = null;
+        Map<String, Object> variables = new LinkedHashMap<>();
+        ;
         if (variablesJson != null) {
             variables = objectMapper.readValue(variablesJson, new TypeReference<Map<String, Object>>() {
             });
         }
-        if (variables == null) {
-            variables = new LinkedHashMap<>();
-        }
-        executeGraphqlQuery(httpServletResponse, query, variables);
+        executeGraphqlQuery(httpServletResponse, operationName, query, variables);
     }
 
 
+    @SuppressWarnings("unchecked")
     @RequestMapping(value = "/graphql", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     @CrossOrigin
     public void graphql(@RequestBody Map<String, Object> body, HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) throws IOException {
@@ -63,14 +64,15 @@ public class GraphQLController {
         if (query == null) {
             query = "";
         }
+        String operationName = (String) body.get("operationName");
         Map<String, Object> variables = (Map<String, Object>) body.get("variables");
         if (variables == null) {
             variables = new LinkedHashMap<>();
         }
-        executeGraphqlQuery(httpServletResponse, query, variables);
+        executeGraphqlQuery(httpServletResponse, operationName, query, variables);
     }
 
-    private void executeGraphqlQuery(HttpServletResponse httpServletResponse, String query, Map<String, Object> variables) throws IOException {
+    private void executeGraphqlQuery(HttpServletResponse httpServletResponse, String operationName, String query, Map<String, Object> variables) throws IOException {
         //
         // the context object is something that means something to down stream code.  It is instructions
         // from yourself to your other code such as DataFetchers.  The engine passes this on unchanged and
@@ -87,6 +89,7 @@ public class GraphQLController {
         ExecutionInput executionInput = ExecutionInput.newExecutionInput()
                 .query(query)
                 .variables(variables)
+                .operationName(operationName)
                 .context(context)
                 .build();
 
