@@ -13,3 +13,7 @@ The http example is a simple Spring Boot application that serves the classic Sta
 The defer example is a simple Spring Boot application that demonstrates more advanced graphql 
 performance by allowing a client to split the result into the data it needs immediately followed
 by the data it can `defer` to later. 
+
+## Spring Boot integration example
+
+This shows how to integrate GraphQL Java with Spring Boot.
