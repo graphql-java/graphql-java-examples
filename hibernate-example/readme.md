@@ -1,15 +1,14 @@
-# graphql-java-http-example
+# graphql-java-hibernate-example
 
-An example of using graphql-java in a HTTP application.
+An example of a simple graphql-java implementation backed by a Hibernate repository (via Spring Data JPA) and
+integrated with Spring Boot.
 
-It demonstrates the use of `Schema Definition Language (SDL)` to define a schema in a textual way.
- 
-It also shows how to use `data loader` to ensure that most efficient way to load
-inside a graphql query
+It shows how data fetchers can use Hibernate repositories to query the database.
 
-Finally it shows how to combine graphql-java `Instrumentation` to create performance tracing
-and data loader effectiveness statistics.
+In memory H2 is being used as the database, SQL scripts are execute during startup to add some sample data to
+the database. You can find those scripts in [data.sql](src/resources/data.sql).
 
+# Running the example
 To build the code type
 
     ./gradlew build

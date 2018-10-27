@@ -14,9 +14,14 @@ import org.springframework.stereotype.Component;
 
 /**
  * This is our wiring used to put fetching behaviour behind a graphql field.
+ *
+ * Data fetchers declared here use {@link CharacterRepository} to query data from the database.
  */
 @Component
 public class StarWarsWiring {
+    /**
+     * The autowired {@link CharacterRepository}, that will be used by the data fetcher to access the database.
+     */
     private final CharacterRepository characterRepository;
 
     @Autowired
@@ -28,18 +33,30 @@ public class StarWarsWiring {
         return characterRepository;
     }
 
+    /**
+     * Fetches one record from the database based on the type and id.
+     *
+     */
     DataFetcher humanDataFetcher = environment -> {
         String id = environment.getArgument("id");
 
         return getCharacterRepository().findByTypeAndId(Human.class, Long.valueOf(id));
     };
 
+    /**
+     * Fetches one record from the database based on the type and id.
+     */
     DataFetcher droidDataFetcher = environment -> {
         String id = environment.getArgument("id");
 
         return getCharacterRepository().findByTypeAndId(Droid.class, Long.valueOf(id));
     };
 
+    /**
+     * Fetches all characters that are associated with a given episode or a list of all characters if episode is not
+     * specified.
+     *
+     */
     DataFetcher charactersDataFetcher = environment -> {
         Episode episode = environment.getArgument("episode");
 
@@ -48,6 +65,9 @@ public class StarWarsWiring {
                 getCharacterRepository().findByEpisode(episode);
     };
 
+    /**
+     * Fetches a list of friends of a given character.
+     */
     DataFetcher friendsDataFetcher = environment -> {
         FilmCharacter character = environment.getSource();
 

@@ -24,6 +24,9 @@ public abstract class FilmCharacter {
 
     private String name;
 
+    /**
+     * Eagerly fetches a list of friends ids.
+     */
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "CharacterFriend",
             joinColumns = @JoinColumn(name = "CharacterId"))
