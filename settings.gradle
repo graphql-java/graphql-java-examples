@@ -1,0 +1,8 @@
+rootProject.name = 'graphql-java-examples'
+include 'defer:server'
+include 'http-example'
+include 'spring-boot-integration'
+include 'hibernate-example'
+include 'subscription-example'
+
+
