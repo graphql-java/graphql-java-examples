@@ -105,50 +105,13 @@ public class GraphQLController {
 
     }
 
-    private Mono<Void> sendDeferResponse(ServerHttpResponse serverHttpResponse, ExecutionResult executionResult, Publisher<DeferredExecutionResult> deferredResults)  {
+    private Mono<Void> sendDeferResponse(ServerHttpResponse serverHttpResponse, ExecutionResult executionResult, Publisher<DeferredExecutionResult> deferredResults) {
         serverHttpResponse.setStatusCode(HttpStatus.OK);
         HttpHeaders headers = serverHttpResponse.getHeaders();
         headers.set("Content-Type", "multipart/mixed; boundary=\"-\"");
         headers.set("transfer-encoding", "chunked");
-//        return message.headers().contains(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED, true);
         headers.set("Connection", "keep-alive");
 
-
-        DataBufferFactory dataBufferFactory = serverHttpResponse.bufferFactory();
-
-
-//        serverHttpResponse.writeAndFlushWith(Mono.just(firstDataBuffer)).subscribe(aVoid -> {
-//            System.out.println("done FIRST");
-//        }, throwable -> {
-//            throwable.printStackTrace();
-//        }, () -> {
-//            System.out.println("completed FIRST");
-//        });
-
-
-//        Flux<Mono<DataBuffer>> dataBufferFlux = Flux.from(deferredResults).map(deferredExecutionResult -> {
-//            DeferPart deferPart = new DeferPart(executionResult.toSpecification());
-//            StringBuilder builder = new StringBuilder();
-//            String body = deferPart.write();
-//            System.out.println("body:" + body);
-//            builder.append(CRLF).append("---").append(CRLF);
-//            builder.append(body);
-//            Mono<DataBuffer> dataBuffer = strToDataBuffer(dataBufferFactory, builder.toString());
-//            return dataBuffer;
-//        });
-
-//        Flux<Mono<DataBuffer>> resultFlux = Flux.mergeSequential(Flux.just(firstDataBuffer), dataBufferFlux);
-//        serverHttpResponse.writeAndFlushWith(resultFlux).subscribe(aVoid -> {
-//            StringBuilder end = new StringBuilder();
-//            end.append(CRLF).append("-----").append(CRLF);
-//            serverHttpResponse.writeWith(strToDataBuffer(dataBufferFactory, end.toString()));
-//            serverHttpResponse.setComplete();
-//
-//        });
-
-//        serverHttpResponse.beforeCommit(() -> {
-//            System.out.println("BEFORE COMMIT");
-//        });
 
         Flux<Mono<DataBuffer>> dataBufferFlux = Flux.create(monoFluxSink -> {
 
@@ -168,52 +131,33 @@ public class GraphQLController {
                 @Override
                 public void onNext(DeferredExecutionResult executionResult) {
                     try {
-//                    DeferPart deferPart = new DeferPart(executionResult.toSpecification());
-//                    String body = deferPart.write();
-//                    writer.append(CRLF).append("---").append(CRLF);
-//                    writer.write(body);
-                        System.out.println("is comitted:" + serverHttpResponse.isCommitted());
                         DeferPart deferPart = new DeferPart(executionResult.toSpecification());
                         StringBuilder builder = new StringBuilder();
                         String body = deferPart.write();
-                        System.out.println("body:" + body);
                         builder.append(CRLF).append("---").append(CRLF);
                         builder.append(body);
                         Mono<DataBuffer> dataBuffer = strToDataBuffer(builder.toString());
                         monoFluxSink.next(dataBuffer);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        monoFluxSink.error(e);
                     }
                 }
 
                 @Override
                 public void onError(Throwable t) {
-                    t.printStackTrace();
+                    monoFluxSink.error(t);
                 }
 
                 @Override
                 public void onComplete() {
-//                writer.append(CRLF).append("-----").append(CRLF);
-//                writer.close();
-//                asyncContext.complete();
-                    System.out.println("END!!!");
                     StringBuilder end = new StringBuilder();
                     end.append(CRLF).append("-----").append(CRLF);
                     Mono<DataBuffer> dataBuffer = strToDataBuffer(end.toString());
                     monoFluxSink.next(dataBuffer);
-//                    serverHttpResponse.writeAndFlushWith(Mono.just().subscribe(aVoid -> {
-//                        System.out.println("done END");
-//                    }, throwable -> {
-//                        throwable.printStackTrace();
-//                    }, () -> {
-//                        System.out.println("completed END");
-//                        serverHttpResponse.setComplete();
-//                    });
                 }
             });
 
         });
-
         return serverHttpResponse.writeAndFlushWith(dataBufferFlux);
     }
 

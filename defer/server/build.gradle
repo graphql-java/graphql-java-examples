@@ -27,11 +27,9 @@ repositories {
 
 dependencies {
     compile('org.springframework.boot:spring-boot-starter-webflux')
-//    compile('org.springframework.boot:spring-boot-starter-web')
-
     compile "com.graphql-java:graphql-java:2018-09-16T01-27-46-27a6e44"
     compile 'com.google.guava:guava:26.0-jre'
     testCompile('org.springframework.boot:spring-boot-starter-test')
-//    testImplementation('io.projectreactor:reactor-test')
+    testImplementation('io.projectreactor:reactor-test')
 
 }
