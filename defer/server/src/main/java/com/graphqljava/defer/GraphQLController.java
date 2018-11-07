@@ -109,7 +109,6 @@ public class GraphQLController {
         serverHttpResponse.setStatusCode(HttpStatus.OK);
         HttpHeaders headers = serverHttpResponse.getHeaders();
         headers.set("Content-Type", "multipart/mixed; boundary=\"-\"");
-        headers.set("transfer-encoding", "chunked");
         headers.set("Connection", "keep-alive");
 
 
