@@ -99,65 +99,29 @@ public class GraphQLController {
         headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
         String body = objectMapper.writeValueAsString(result);
         return serverHttpResponse.writeWith(strToDataBuffer(body));
-//        PrintWriter writer = httpServletResponse.getWriter();
-//        writer.write(body);
-//        writer.close();
-
     }
 
     private Mono<Void> sendDeferResponse(ServerHttpResponse serverHttpResponse, ExecutionResult executionResult, Publisher<DeferredExecutionResult> deferredResults) {
+        // this implements this apollo defer spec: https://github.com/apollographql/apollo-server/blob/defer-support/docs/source/defer-support.md
+        // the spec says CRLF + "-----" + CRLF is needed at the end, but it works without it and with it we get client
+        // side errors with it, so we skp it
         serverHttpResponse.setStatusCode(HttpStatus.OK);
         HttpHeaders headers = serverHttpResponse.getHeaders();
         headers.set("Content-Type", "multipart/mixed; boundary=\"-\"");
         headers.set("Connection", "keep-alive");
 
-
-        Flux<Mono<DataBuffer>> dataBufferFlux = Flux.create(monoFluxSink -> {
-
-            Mono<DataBuffer> firstDataBuffer = firstResult(executionResult);
-            monoFluxSink.next(firstDataBuffer);
-
-            deferredResults.subscribe(new Subscriber<DeferredExecutionResult>() {
-
-                Subscription subscription;
-
-                @Override
-                public void onSubscribe(Subscription s) {
-                    subscription = s;
-                    subscription.request(10);
-                }
-
-                @Override
-                public void onNext(DeferredExecutionResult executionResult) {
-                    try {
-                        DeferPart deferPart = new DeferPart(executionResult.toSpecification());
-                        StringBuilder builder = new StringBuilder();
-                        String body = deferPart.write();
-                        builder.append(CRLF).append("---").append(CRLF);
-                        builder.append(body);
-                        Mono<DataBuffer> dataBuffer = strToDataBuffer(builder.toString());
-                        monoFluxSink.next(dataBuffer);
-                    } catch (Exception e) {
-                        monoFluxSink.error(e);
-                    }
-                }
-
-                @Override
-                public void onError(Throwable t) {
-                    monoFluxSink.error(t);
-                }
-
-                @Override
-                public void onComplete() {
-                    StringBuilder end = new StringBuilder();
-                    end.append(CRLF).append("-----").append(CRLF);
-                    Mono<DataBuffer> dataBuffer = strToDataBuffer(end.toString());
-                    monoFluxSink.next(dataBuffer);
-                }
-            });
-
+        Flux<Mono<DataBuffer>> deferredDataBuffers = Flux.from(deferredResults).map(deferredExecutionResult -> {
+            DeferPart deferPart = new DeferPart(deferredExecutionResult.toSpecification());
+            StringBuilder builder = new StringBuilder();
+            String body = deferPart.write();
+            builder.append(CRLF).append("---").append(CRLF);
+            builder.append(body);
+            return strToDataBuffer(builder.toString());
         });
-        return serverHttpResponse.writeAndFlushWith(dataBufferFlux);
+        Flux<Mono<DataBuffer>> firstResult = Flux.just(firstResult(executionResult));
+
+
+        return serverHttpResponse.writeAndFlushWith(Flux.mergeSequential(firstResult, deferredDataBuffers));
     }
 
     private Mono<DataBuffer> firstResult(ExecutionResult executionResult) {
