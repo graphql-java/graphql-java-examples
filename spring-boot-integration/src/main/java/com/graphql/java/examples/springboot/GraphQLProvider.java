@@ -1,4 +1,4 @@
-package graphql.examples.springboot;
+package com.graphql.java.examples.springboot;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
