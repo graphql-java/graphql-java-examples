@@ -2,6 +2,9 @@
 
 This example has a few mechanisms to prevent your GraphQL server from dealing with expensive queries sent by abusive clients 
 (or maybe legitimate clients that running expensive queries unaware of the negative impacts they might cause).
+Also, it has a couple of timeout strategies that, although won't help ease the burden on the server (since the expensive
+operations are already under way), will provide a better experience to the consumer that won't have to wait forever for
+their requests to return.
 
 Here we introduce 4 mechanisms to help with that task. 3 of them are based on GraphQL Java instrumentation capabilities,
 and the forth one is a bit out GraphQL Java jurisdiction and more related to web servers.
@@ -10,6 +13,9 @@ and the forth one is a bit out GraphQL Java jurisdiction and more related to web
 2. MaxQueryComplexityInstrumentation: set complexity values to fields and limit query complexity to 5 
 3. A custom Instrumentation that sets a timeout period of 3 seconds for DataFetchers 
 4. A hard request timeout of 10 seconds, specified in the web server level (Spring) 
+
+The first 2 items will actually prevent server overload, since they act before the request reach the DataFetchers, which
+perform the expensive operations. Number 3 and 4 are timeouts that force long running executions to return early to customers.
 
 # The schema
 The schema we're using is quite simple:
