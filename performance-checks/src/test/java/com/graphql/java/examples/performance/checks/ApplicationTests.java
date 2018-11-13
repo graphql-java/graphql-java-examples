@@ -1,4 +1,4 @@
-package com.graphqljava.examples.springboot;
+package com.graphql.java.examples.performance.checks;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

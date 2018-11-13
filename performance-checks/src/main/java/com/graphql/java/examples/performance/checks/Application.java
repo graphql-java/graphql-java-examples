@@ -1,4 +1,4 @@
-package graphql.examples.springboot;
+package com.graphql.java.examples.performance.checks;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

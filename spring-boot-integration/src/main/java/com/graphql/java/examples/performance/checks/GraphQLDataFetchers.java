@@ -1,4 +1,4 @@
-package graphql.examples.springboot;
+package com.graphql.java.examples.performance.checks;
 
 import graphql.schema.DataFetcher;
 import org.springframework.stereotype.Component;

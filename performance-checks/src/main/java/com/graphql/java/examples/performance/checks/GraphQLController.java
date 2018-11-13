@@ -1,4 +1,4 @@
-package graphql.examples.springboot;
+package com.graphql.java.examples.performance.checks;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,11 +16,17 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
+/**
+ * The controller that exposes the GET and POST /graphql endpoints
+ *
+ * What is special about this controller is that the request methods return a {@link Callable} wrapping the actual
+ * value maps. This is to activate the global timeout property, defined by `spring.mvc.async.request-timeout` in the
+ * `application.properties` file.
+ */
 @RestController
 public class GraphQLController {
-
-
     private final GraphQL graphql;
     private final ObjectMapper objectMapper;
 
@@ -32,33 +38,35 @@ public class GraphQLController {
 
     @RequestMapping(value = "/graphql", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
     @CrossOrigin
-    public Map<String, Object> graphqlGET(@RequestParam("query") String query,
-                                          @RequestParam(value = "operationName", required = false) String operationName,
-                                          @RequestParam("variables") String variablesJson
+    public Callable<Map<String, Object>> graphqlGET(@RequestParam("query") String query,
+                                                    @RequestParam(value = "operationName", required = false) String operationName,
+                                                    @RequestParam("variables") String variablesJson
     ) throws IOException {
-        Map<String, Object> variables = new LinkedHashMap<>();
-        if (variablesJson != null) {
-            variables = objectMapper.readValue(variablesJson, new TypeReference<Map<String, Object>>() {
-            });
-        }
-        return executeGraphqlQuery(query, operationName, variables);
-    }
+        final Map<String, Object> variables = new LinkedHashMap<>();
 
+        if (variablesJson != null) {
+            variables.putAll(objectMapper.readValue(variablesJson, new TypeReference<Map<String, Object>>() {}));
+        }
+
+        return () -> executeGraphqlQuery(query, operationName, variables);
+    }
 
     @SuppressWarnings("unchecked")
     @RequestMapping(value = "/graphql", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_VALUE)
     @CrossOrigin
-    public Map<String, Object> graphql(@RequestBody Map<String, Object> body) {
-        String query = (String) body.get("query");
-        if (query == null) {
-            query = "";
-        }
+    public Callable<Map<String, Object>> graphql(@RequestBody Map<String, Object> body) {
+
+        final String query = (String) body.get("query");
+
         String operationName = (String) body.get("operationName");
-        Map<String, Object> variables = (Map<String, Object>) body.get("variables");
-        if (variables == null) {
-            variables = new LinkedHashMap<>();
+
+        final Map<String, Object> variables = new LinkedHashMap<>();
+
+        if (body.get("variables") != null) {
+            variables.putAll((Map<String, Object>) body.get("variables"));
         }
-        return executeGraphqlQuery(query, operationName, variables);
+
+        return () -> executeGraphqlQuery(query, operationName, variables);
     }
 
     private Map<String, Object> executeGraphqlQuery(String query, String operationName, Map<String, Object> variables) {
