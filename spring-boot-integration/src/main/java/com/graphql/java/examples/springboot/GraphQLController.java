@@ -1,4 +1,4 @@
-package graphql.examples.springboot;
+package com.graphql.java.examples.springboot;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
