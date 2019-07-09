@@ -45,12 +45,11 @@ public class StockTickerGraphqlPublisher {
 
     private DataFetcher stockQuotesSubscriptionFetcher() {
         return environment -> {
-            List<String> arg = environment.getArgument("stockCodes");
-            List<String> stockCodesFilter = arg == null ? Collections.emptyList() : arg;
-            if (stockCodesFilter.isEmpty()) {
+            List<String> stockCodes = environment.getArgument("stockCodes");
+            if (stockCodes == null) {
                 return STOCK_TICKER_PUBLISHER.getPublisher();
             } else {
-                return STOCK_TICKER_PUBLISHER.getPublisher(stockCodesFilter);
+                return STOCK_TICKER_PUBLISHER.getPublisher(stockCodes);
             }
         };
     }

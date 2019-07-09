@@ -8,3 +8,4 @@ classes
 *.ipr
 *.iws
 .DS_Store
+/.nb-gradle/
