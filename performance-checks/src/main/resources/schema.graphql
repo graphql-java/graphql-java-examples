@@ -1,0 +1,16 @@
+
+type Query {
+    instrumentedField(sleep: Int): String
+    characters: [Character]
+}
+
+type Character {
+    # "name" is cheap to obtain, so its complexity value is 0.
+    name: String!
+    # a list of "friends" can nest another list of friends, and so on. This nesting can go on forever,
+    # so, in the code, we limit the amount of nested fields to 5.
+    friends: [Character]
+    # the "energy" field is very expensive to calculate. So it has a complexity of value of 3.
+    energy: Float
+}
+

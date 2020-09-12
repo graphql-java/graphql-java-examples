@@ -4,5 +4,4 @@ include 'http-example'
 include 'spring-boot-integration'
 include 'hibernate-example'
 include 'subscription-example'
-
-
+include 'performance-checks'
